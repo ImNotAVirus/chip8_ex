@@ -12,8 +12,6 @@ defmodule TestSuites.FlagsTest do
     cpu = execute_rom(filename)
     screen = DisplayAgent.get_screen(cpu.display)
 
-    File.write("aa.txt", screen)
-
     assert screen == expected_screen()
   end
 
