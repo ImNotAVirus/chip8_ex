@@ -15,6 +15,12 @@ defmodule Chip8Ex.Binary do
     data
   end
 
+  def write(bin, start, bytes) do
+    bytes_size = byte_size(bytes)
+    <<prefix::binary-size(start), _::binary-size(bytes_size), suffix::binary>> = bin
+    <<prefix::binary-size(start), bytes::binary, suffix::binary>>
+  end
+
   def write_byte(bin, start, b) do
     <<prefix::binary-size(start), _::8, suffix::binary>> = bin
     <<prefix::binary-size(start), b::8, suffix::binary>>

@@ -44,5 +44,5 @@ defmodule Chip8Ex.Display do
 
   ## Private functions
 
-  defp backend(), do: Application.get_env(:chip8_ex, :display_backend, Chip8Ex.Display.Backend)
+  defp backend(), do: Application.get_env(:chip8_ex, :display_driver, Chip8Ex.Components.ConsoleDisplay)
 end

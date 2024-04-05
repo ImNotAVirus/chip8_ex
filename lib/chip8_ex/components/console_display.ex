@@ -1,6 +1,6 @@
-defmodule Chip8Ex.Display.Backend do
+defmodule Chip8Ex.Components.ConsoleDisplay do
   @moduledoc """
-  TODO: Chip8Ex.Display.Backend
+  TODO: Chip8Ex.Components.ConsoleDisplay
   """
 
   @behaviour Chip8Ex.Display
