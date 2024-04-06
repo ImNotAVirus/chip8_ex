@@ -1,13 +1,11 @@
 defmodule TestSuites.Chip8LogoTest do
-  use ExUnit.Case
-
-  import Chip8Ex.Chip8Helper
+  use Chip8Ex.Case
 
   ## Tests
 
-  test "run the ROM" do
+  test "run the ROM", %{vm: vm} do
     filename = Path.join(roms_path(), "1-chip8-logo.ch8")
-    vm = execute_rom(filename, 39)
+    vm = execute_rom(vm, filename, 39)
     screen = get_vm_display(vm)
 
     assert screen == expected_screen()
@@ -35,9 +33,9 @@ defmodule TestSuites.Chip8LogoTest do
       "        xxx       xxx   xx xxx xxxxxxx        xxx    xxx        ",
       "        xxx       xxx   xx xxx xxxxxx        xxx      xx        ",
       "        xxx       xxx   xx xxx xxx           xxx      xx        ",
-      "        xxx       xxx   xx xxx xxx x x   xxx xxx      xx        ",
-      "         xxx   xx xxx   xx xxx xxx xxx   x x xxxx    xxx        ",
-      "          xxxxxxx xxx   xx xxx xxx   x   x x  xxxxxxxxx         ",
+      "        xxx       xxx   xx xxx xxx x x    x  xxx      xx        ",
+      "         xxx   xx xxx   xx xxx xxx xxx   xx  xxxx    xxx        ",
+      "          xxxxxxx xxx   xx xxx xxx   x    x   xxxxxxxxx         ",
       "           xxxxx  xxx   xx xxx xxx   x x xxx   xxxxxxx          ",
       "                                                                ",
       "                                                                ",

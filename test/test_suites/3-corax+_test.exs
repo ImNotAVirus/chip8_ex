@@ -1,13 +1,11 @@
 defmodule TestSuites.CoraxPlusTest do
-  use ExUnit.Case
-
-  import Chip8Ex.Chip8Helper
+  use Chip8Ex.Case
 
   ## Tests
 
-  test "run the ROM" do
+  test "run the ROM", %{vm: vm} do
     filename = Path.join(roms_path(), "3-corax+.ch8")
-    vm = execute_rom(filename)
+    vm = execute_rom(vm, filename)
     screen = get_vm_display(vm)
 
     assert screen == expected_screen()
@@ -41,9 +39,9 @@ defmodule TestSuites.CoraxPlusTest do
       "    x x x  xx     x x xx   xx     x x x    xx                   ",
       "  xx  x x  x      xxx xxx  x      xxx xxx  x                    ",
       "                                                                ",
-      "  xx  x x         xxx xxx         xxx  xx             x x   xxx ",
-      "   x   x   x x    xxx  xx  x x    x   x    x x    x x xxx   x x ",
-      "   x  x x  xx     x x   x  xx     xx  xxx  xx     x x   x   x x ",
+      "  xx  x x         xxx xxx         xxx  xx             x x    x  ",
+      "   x   x   x x    xxx  xx  x x    x   x    x x    x x xxx   xx  ",
+      "   x  x x  xx     x x   x  xx     xx  xxx  xx     x x   x    x  ",
       "  xxx x x  x      xxx xxx  x      x   xxx  x       x    x x xxx ",
       "                                                                ",
       "                                                                "

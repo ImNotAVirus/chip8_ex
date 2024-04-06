@@ -8,19 +8,22 @@ defmodule Chip8Ex.Components.DataBus do
   alias __MODULE__
   alias Chip8Ex.Components.{RAM, VRAM}
 
-  defstruct memory: nil, vram: nil
+  defstruct memory: nil, vram: nil, keyboard: nil
 
   ## Public functions
 
   def start_link(opts) do
+    name = opts[:name] || __MODULE__
+
     Agent.start_link(
       fn ->
         %DataBus{
-          memory: RAM.new(),
-          vram: VRAM.new()
+          memory: opts[:memory] || RAM.new(),
+          vram: opts[:vram] || VRAM.new(),
+          keyboard: Keyword.fetch!(opts, :keyboard)
         }
       end,
-      opts
+      name: name
     )
   end
 
@@ -71,7 +74,15 @@ defmodule Chip8Ex.Components.DataBus do
     :ok = vram_set_buffer(agent, buffer)
   end
 
+  def key_pressed?(agent, key) do
+    Agent.get(agent, &keyboard_driver().key_pressed?(&1.keyboard, key))
+  end
+
   ## Private functions
+
+  defp keyboard_driver() do
+    Application.get_env(:chip8_ex, :keyboard_driver, Chip8Ex.Components.Keyboard)
+  end
 
   defp do_read(%DataBus{} = bus, address, len) do
     ram_area = 0..RAM.size()

@@ -22,7 +22,11 @@ defmodule Chip8Ex.Components.CPU do
             # because it's easier and there is no offical location for the stack
             stack: [],
             # Data bus (RAM, VRAM, keyboard)
-            bus: nil
+            bus: nil,
+            arch: :chip8
+
+  @flag_reg 0xF
+  @archs [:chip8, :super_chip, :xo_chip]
 
   ## Public functions
 
@@ -35,6 +39,10 @@ defmodule Chip8Ex.Components.CPU do
       st: 0,
       bus: data_bus
     }
+  end
+
+  def set_architecture(%CPU{} = cpu, arch) when arch in @archs do
+    %CPU{cpu | arch: arch}
   end
 
   def next(%CPU{} = cpu) do
@@ -117,17 +125,44 @@ defmodule Chip8Ex.Components.CPU do
 
   # 8xy1 - OR Vx, Vy
   def execute(%CPU{} = cpu, <<0x08::4, x::4, y::4, 1::4>>) do
-    %CPU{cpu | reg: Map.update!(cpu.reg, x, &bor(&1, cpu.reg[y]))}
+    new_reg = Map.update!(cpu.reg, x, &bor(&1, cpu.reg[y]))
+
+    new_reg =
+      case cpu.arch do
+        :chip8 -> Map.replace!(new_reg, @flag_reg, 0)
+        :super_chip -> new_reg
+        :xo_chip -> new_reg
+      end
+
+    %CPU{cpu | reg: new_reg}
   end
 
   # 8xy2 - AND Vx, Vy
   def execute(%CPU{} = cpu, <<0x08::4, x::4, y::4, 2::4>>) do
-    %CPU{cpu | reg: Map.update!(cpu.reg, x, &band(&1, cpu.reg[y]))}
+    new_reg = Map.update!(cpu.reg, x, &band(&1, cpu.reg[y]))
+
+    new_reg =
+      case cpu.arch do
+        :chip8 -> Map.replace!(new_reg, @flag_reg, 0)
+        :super_chip -> new_reg
+        :xo_chip -> new_reg
+      end
+
+    %CPU{cpu | reg: new_reg}
   end
 
   # 8xy3 - XOR Vx, Vy
   def execute(%CPU{} = cpu, <<0x08::4, x::4, y::4, 3::4>>) do
-    %CPU{cpu | reg: Map.update!(cpu.reg, x, &bxor(&1, cpu.reg[y]))}
+    new_reg = Map.update!(cpu.reg, x, &bxor(&1, cpu.reg[y]))
+
+    new_reg =
+      case cpu.arch do
+        :chip8 -> Map.replace!(new_reg, @flag_reg, 0)
+        :super_chip -> new_reg
+        :xo_chip -> new_reg
+      end
+
+    %CPU{cpu | reg: new_reg}
   end
 
   # 8xy4 - ADD Vx, Vy
@@ -138,7 +173,7 @@ defmodule Chip8Ex.Components.CPU do
     reg =
       cpu.reg
       |> Map.put(x, band(result, 0xFF))
-      |> Map.put(0xF, vf)
+      |> Map.put(@flag_reg, vf)
 
     %CPU{cpu | reg: reg}
   end
@@ -151,21 +186,27 @@ defmodule Chip8Ex.Components.CPU do
     reg =
       cpu.reg
       |> Map.put(x, band(result, 0xFF))
-      |> Map.put(0xF, vf)
+      |> Map.put(@flag_reg, vf)
 
     %CPU{cpu | reg: reg}
   end
 
   # 8xy6 - SHR Vx {, Vy}
-  def execute(%CPU{} = cpu, <<0x08::4, x::4, _y::4, 6::4>>) do
-    # NOTE: (Optional, or configurable) Set VX to the value of VY
-    result = bsr(cpu.reg[x], 1)
+  def execute(%CPU{} = cpu, <<0x08::4, x::4, y::4, 6::4>>) do
+    src =
+      case cpu.arch do
+        :chip8 -> cpu.reg[y]
+        :super_chip -> cpu.reg[x]
+        :xo_chip -> cpu.reg[y]
+      end
+
+    result = bsr(src, 1)
     vf = if band(cpu.reg[x], 0b00000001) == 0x0, do: 0x0, else: 0x1
 
     reg =
       cpu.reg
       |> Map.put(x, result)
-      |> Map.put(0xF, vf)
+      |> Map.put(@flag_reg, vf)
 
     %CPU{cpu | reg: reg}
   end
@@ -178,21 +219,27 @@ defmodule Chip8Ex.Components.CPU do
     reg =
       cpu.reg
       |> Map.put(x, band(result, 0xFF))
-      |> Map.put(0xF, vf)
+      |> Map.put(@flag_reg, vf)
 
     %CPU{cpu | reg: reg}
   end
 
   # 8xyE - SHL Vx {, Vy}
-  def execute(%CPU{} = cpu, <<0x08::4, x::4, _y::4, 0xE::4>>) do
-    # NOTE: (Optional, or configurable) Set VX to the value of VY
-    result = bsl(cpu.reg[x], 1)
+  def execute(%CPU{} = cpu, <<0x08::4, x::4, y::4, 0xE::4>>) do
+    src =
+      case cpu.arch do
+        :chip8 -> cpu.reg[y]
+        :super_chip -> cpu.reg[x]
+        :xo_chip -> cpu.reg[y]
+      end
+
+    result = bsl(src, 1)
     vf = if band(cpu.reg[x], 0b10000000) == 0x0, do: 0x0, else: 0x1
 
     reg =
       cpu.reg
       |> Map.put(x, band(result, 0xFF))
-      |> Map.put(0xF, vf)
+      |> Map.put(@flag_reg, vf)
 
     %CPU{cpu | reg: reg}
   end
@@ -211,14 +258,22 @@ defmodule Chip8Ex.Components.CPU do
   end
 
   # Bnnn - JP V0, addr
-  # TODO: ...
-  # Jump to location nnn + V0.
-  # TODO: The program counter is set to nnn plus the value of V0.
+  def execute(%CPU{} = cpu, <<0x0B::4, addr::12>>) do
+    add =
+      case cpu.arch do
+        :chip8 -> cpu.reg[0x0]
+        :super_chip -> cpu.reg[bsr(addr, 8)]
+        :xo_chip -> cpu.reg[0x0]
+      end
+
+    %CPU{cpu | pc: addr + add}
+  end
 
   # Cxkk - RND Vx, byte
-  # TODO: ...
-  # Set Vx = random byte AND kk.
-  # The interpreter generates a random number from 0 to 255, which is then ANDed with the value kk. The results are stored in Vx. See instruction 8xy2 for more information on AND.
+  def execute(%CPU{} = cpu, <<0x0C::4, x::4, kk::8>>) do
+    rand = Enum.random(0x00..0xFF)
+    %CPU{cpu | reg: Map.put(cpu.reg, x, band(rand, kk))}
+  end
 
   # Dxyn - DRW Vx, Vy, nibble
   def execute(%CPU{} = cpu, <<0x0D::4, x::4, y::4, n::4>>) do
@@ -242,32 +297,53 @@ defmodule Chip8Ex.Components.CPU do
 
     {new_buffer, vf} =
       Enum.reduce(bits_with_pos, {buffer, 0}, fn {bit, {off_x, off_y}}, {buffer, vf} ->
-        pos_x = x + off_x
-        pos_y = y + off_y
         # FIXME: CPU should not have a direct access to the Display
-        bin_pos = pos_y * Chip8Ex.Display.width() + pos_x
+        {pos_x, pos_y} =
+          case cpu.arch do
+            :chip8 ->
+              {x + off_x, y + off_y}
 
-        curr = :binary.at(buffer, bin_pos)
-        new_buffer = Binary.write_byte(buffer, bin_pos, bxor(curr, bit))
+            :super_chip ->
+              {x + off_x, y + off_y}
 
-        new_vf = if curr == 1 and bit == 1, do: 1, else: 0
-        {new_buffer, max(vf, new_vf)}
+            :xo_chip ->
+              {rem(x + off_x, Chip8Ex.Display.width()), rem(y + off_y, Chip8Ex.Display.height())}
+          end
+
+        if pos_x in 0..(Chip8Ex.Display.width() - 1) and
+             pos_y in 0..(Chip8Ex.Display.height() - 1) do
+          bin_pos = pos_y * Chip8Ex.Display.width() + pos_x
+
+          curr = :binary.at(buffer, bin_pos)
+          new_buffer = Binary.write_byte(buffer, bin_pos, bxor(curr, bit))
+
+          new_vf = if curr == 1 and bit == 1, do: 1, else: 0
+          {new_buffer, max(vf, new_vf)}
+        else
+          {buffer, vf}
+        end
       end)
 
     :ok = DataBus.vram_set_buffer!(cpu.bus, new_buffer)
 
-    %CPU{cpu | reg: Map.put(cpu.reg, 0xF, vf)}
+    %CPU{cpu | reg: Map.put(cpu.reg, @flag_reg, vf)}
   end
 
   # Ex9E - SKP Vx
-  # TODO:
-  # Skip next instruction if key with the value of Vx is pressed.
-  # Checks the keyboard, and if the key corresponding to the value of Vx is currently in the down position, PC is increased by 2.
+  def execute(%CPU{} = cpu, <<0x0E::4, x::4, 0x9E::8>>) do
+    case DataBus.key_pressed?(cpu.bus, cpu.reg[x]) do
+      true -> %CPU{cpu | pc: cpu.pc + 2}
+      false -> cpu
+    end
+  end
 
   # ExA1 - SKNP Vx
-  # TODO:
-  # Skip next instruction if key with the value of Vx is not pressed.
-  # Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
+  def execute(%CPU{} = cpu, <<0x0E::4, x::4, 0xA1::8>>) do
+    case DataBus.key_pressed?(cpu.bus, cpu.reg[x]) do
+      true -> cpu
+      false -> %CPU{cpu | pc: cpu.pc + 2}
+    end
+  end
 
   # Fx07 - LD Vx, DT
   def execute(%CPU{} = cpu, <<0x0F::4, x::4, 0x07::8>>) do
@@ -275,9 +351,15 @@ defmodule Chip8Ex.Components.CPU do
   end
 
   # Fx0A - LD Vx, K
-  # TODO: ...
-  # Wait for a key press, store the value of the key in Vx.
-  # All execution stops until a key is pressed, then the value of that key is stored in Vx.
+  def execute(%CPU{} = cpu, <<0x0F::4, x::4, 0x0A::8>>) do
+    key_pressed = Enum.find(0x0..0xF, &DataBus.key_pressed?(cpu.bus, &1))
+
+    case key_pressed do
+      # Loop until a key is pressed
+      nil -> %CPU{cpu | pc: cpu.pc - 2}
+      key -> %CPU{cpu | reg: Map.put(cpu.reg, x, key)}
+    end
+  end
 
   # Fx15 - LD DT, Vx
   def execute(%CPU{} = cpu, <<0x0F::4, x::4, 0x15::8>>) do
@@ -285,9 +367,9 @@ defmodule Chip8Ex.Components.CPU do
   end
 
   # Fx18 - LD ST, Vx
-  # TODO: ...
-  # Set sound timer = Vx.
-  # ST is set equal to the value of Vx.
+  def execute(%CPU{} = cpu, <<0x0F::4, x::4, 0x18::8>>) do
+    %CPU{cpu | st: cpu.reg[x]}
+  end
 
   # Fx1E - ADD I, Vx
   def execute(%CPU{} = cpu, <<0x0F::4, x::4, 0x1E::8>>) do
@@ -318,18 +400,30 @@ defmodule Chip8Ex.Components.CPU do
       |> :binary.list_to_bin()
 
     :ok = DataBus.write!(cpu.bus, cpu.i, bytes)
-    cpu
+
+    case cpu.arch do
+      :chip8 -> %CPU{cpu | i: cpu.i + x + 1}
+      :super_chip -> cpu
+      :xo_chip -> %CPU{cpu | i: cpu.i + x + 1}
+    end
   end
 
   # Fx65 - LD Vx, [I]
   def execute(%CPU{} = cpu, <<0x0F::4, x::4, 0x65::8>>) do
-    cpu.bus
-    |> DataBus.read!(cpu.i, x + 1)
-    |> :binary.bin_to_list()
-    |> Enum.with_index()
-    |> Enum.reduce(cpu, fn {byte, index}, cpu ->
-      %CPU{cpu | reg: Map.put(cpu.reg, index, byte)}
-    end)
+    new_cpu =
+      cpu.bus
+      |> DataBus.read!(cpu.i, x + 1)
+      |> :binary.bin_to_list()
+      |> Enum.with_index()
+      |> Enum.reduce(cpu, fn {byte, index}, cpu ->
+        %CPU{cpu | reg: Map.put(cpu.reg, index, byte)}
+      end)
+
+    case new_cpu.arch do
+      :chip8 -> %CPU{new_cpu | i: new_cpu.i + x + 1}
+      :super_chip -> new_cpu
+      :xo_chip -> %CPU{new_cpu | i: new_cpu.i + x + 1}
+    end
   end
 
   def execute(%CPU{} = _cpu, <<instruction::16>>) do

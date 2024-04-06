@@ -13,10 +13,11 @@ defmodule Chip8Ex.VM do
   ## Public API
 
   def new(data_bus) do
-    %VM{
-      cpu: CPU.new(data_bus),
-      bus: data_bus
-    }
+    %VM{cpu: CPU.new(data_bus), bus: data_bus}
+  end
+
+  def set_architecture(%VM{} = vm, arch) do
+    %VM{vm | cpu: CPU.set_architecture(vm.cpu, arch)}
   end
 
   def load_rom(%VM{} = vm, rom) when is_binary(rom) do

@@ -1,2 +1,2 @@
-Application.put_env(:chip8_ex, :display_driver, Chip8Ex.DisplayAgent)
+Application.put_env(:chip8_ex, :keyboard_driver, Chip8Ex.KeyboardFake)
 ExUnit.start()
