@@ -3,14 +3,12 @@ defmodule TestSuites.IBMLogoTest do
 
   import Chip8Ex.Chip8Helper
 
-  alias Chip8Ex.DisplayAgent
-
   ## Tests
 
   test "run the ROM" do
     filename = Path.join(roms_path(), "2-ibm-logo.ch8")
-    cpu = execute_rom(filename, 20)
-    screen = DisplayAgent.get_screen(cpu.display)
+    vm = execute_rom(filename, 20)
+    screen = get_vm_display(vm)
 
     assert screen == expected_screen()
   end
@@ -50,6 +48,6 @@ defmodule TestSuites.IBMLogoTest do
       "                                                                ",
       "                                                                "
     ]
-    |> Enum.join("\n")
+    |> Enum.join()
   end
 end

@@ -3,14 +3,12 @@ defmodule TestSuites.QuirksTest do
 
   import Chip8Ex.Chip8Helper
 
-  alias Chip8Ex.DisplayAgent
-
   ## Tests
 
   test "run the ROM" do
     filename = Path.join(roms_path(), "5-quirks.ch8")
-    cpu = execute_rom(filename)
-    screen = DisplayAgent.get_screen(cpu.display)
+    vm = execute_rom(filename)
+    screen = get_vm_display(vm)
 
     File.write("aa.txt", screen)
 
@@ -18,8 +16,7 @@ defmodule TestSuites.QuirksTest do
   end
 
   defp expected_screen() do
-    [
-    ]
-    |> Enum.join("\n")
+    []
+    |> Enum.join()
   end
 end

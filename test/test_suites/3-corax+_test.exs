@@ -3,14 +3,12 @@ defmodule TestSuites.CoraxPlusTest do
 
   import Chip8Ex.Chip8Helper
 
-  alias Chip8Ex.DisplayAgent
-
   ## Tests
 
   test "run the ROM" do
     filename = Path.join(roms_path(), "3-corax+.ch8")
-    cpu = execute_rom(filename)
-    screen = DisplayAgent.get_screen(cpu.display)
+    vm = execute_rom(filename)
+    screen = get_vm_display(vm)
 
     assert screen == expected_screen()
   end
@@ -50,6 +48,6 @@ defmodule TestSuites.CoraxPlusTest do
       "                                                                ",
       "                                                                "
     ]
-    |> Enum.join("\n")
+    |> Enum.join()
   end
 end
